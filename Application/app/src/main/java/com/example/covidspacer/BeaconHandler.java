@@ -1,91 +1,63 @@
 package com.example.covidspacer;
 
-import android.app.IntentService;
+
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.Context;
+import android.os.Build;
+import android.util.Log;
 
-/**
- * An {@link IntentService} subclass for handling asynchronous task requests in
- * a service on a separate handler thread.
- * <p>
- * TODO: Customize class - update intent actions, extra parameters and static
- * helper methods.
- */
-public class BeaconHandler extends IntentService {
-    // TODO: Rename actions, choose action names that describe tasks that this
-    // IntentService can perform, e.g. ACTION_FETCH_NEW_ITEMS
-    private static final String ACTION_FOO = "com.example.covidspacer.action.FOO";
-    private static final String ACTION_BAZ = "com.example.covidspacer.action.BAZ";
+import androidx.annotation.NonNull;
+import androidx.core.app.JobIntentService;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
+import mobi.inthepocket.android.beacons.ibeaconscanner.Beacon;
+import mobi.inthepocket.android.beacons.ibeaconscanner.BluetoothScanBroadcastReceiver;
 
-    // TODO: Rename parameters
-    private static final String EXTRA_PARAM1 = "com.example.covidspacer.extra.PARAM1";
-    private static final String EXTRA_PARAM2 = "com.example.covidspacer.extra.PARAM2";
 
-    public BeaconHandler() {
-        super("BeaconHandler");
-    }
+public class BeaconHandler extends JobIntentService {
+    private static final String TAG = "BeaconActivityService";
 
-    /**
-     * Starts this service to perform action Foo with the given parameters. If
-     * the service is already performing a task this action will be queued.
-     *
-     * @see IntentService
-     */
-    // TODO: Customize helper method
-    public static void startActionFoo(Context context, String param1, String param2) {
-        Intent intent = new Intent(context, BeaconHandler.class);
-        intent.setAction(ACTION_FOO);
-        intent.putExtra(EXTRA_PARAM1, param1);
-        intent.putExtra(EXTRA_PARAM2, param2);
-        context.startService(intent);
-    }
+    private static final int NOTIFICATION_ID = 65;
 
-    /**
-     * Starts this service to perform action Baz with the given parameters. If
-     * the service is already performing a task this action will be queued.
-     *
-     * @see IntentService
-     */
-    // TODO: Customize helper method
-    public static void startActionBaz(Context context, String param1, String param2) {
-        Intent intent = new Intent(context, BeaconHandler.class);
-        intent.setAction(ACTION_BAZ);
-        intent.putExtra(EXTRA_PARAM1, param1);
-        intent.putExtra(EXTRA_PARAM2, param2);
-        context.startService(intent);
-    }
 
     @Override
-    protected void onHandleIntent(Intent intent) {
-        if (intent != null) {
-            final String action = intent.getAction();
-            if (ACTION_FOO.equals(action)) {
-                final String param1 = intent.getStringExtra(EXTRA_PARAM1);
-                final String param2 = intent.getStringExtra(EXTRA_PARAM2);
-                handleActionFoo(param1, param2);
-            } else if (ACTION_BAZ.equals(action)) {
-                final String param1 = intent.getStringExtra(EXTRA_PARAM1);
-                final String param2 = intent.getStringExtra(EXTRA_PARAM2);
-                handleActionBaz(param1, param2);
+    protected void onHandleWork(@NonNull final Intent intent) {
+        final Beacon beacon = intent.getParcelableExtra(BluetoothScanBroadcastReceiver.IBEACON_SCAN_BEACON_DETECTION);
+        final boolean enteredBeacon = intent.getBooleanExtra(BluetoothScanBroadcastReceiver.IBEACON_SCAN_BEACON_ENTERED, false);
+        final boolean exitedBeacon = intent.getBooleanExtra(BluetoothScanBroadcastReceiver.IBEACON_SCAN_BEACON_EXITED, false);
+
+        Log.d(TAG, "Callback ");
+        if (beacon != null) {
+            String logMessage = "";
+            if (enteredBeacon) {
+                Log.d(TAG, "entered beacon " + beacon.getUUID());
+                //logMessage = getString(R.string.notification_enter, beacon.getUUID(), beacon.getMajor(), beacon.getMinor());
+            } else if (exitedBeacon) {
+                Log.d(TAG, "exited beacon " + beacon.getUUID());
+                //logMessage = getString(R.string.notification_exit, beacon.getUUID(), beacon.getMajor(), beacon.getMinor());
             }
+
+            // Create notification channel if required
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                final NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                notificationManager.createNotificationChannel(new NotificationChannel(TAG, "Beacon Activity", NotificationManager.IMPORTANCE_LOW));
+            }
+
+            final Notification notification = new NotificationCompat.Builder(this, TAG)
+                    .setAutoCancel(true)
+                    .setContentText(logMessage)
+                    .setContentTitle("Beacon activity")
+                    .setGroup(TAG)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setStyle(new NotificationCompat.BigTextStyle().bigText(logMessage))
+                    .build();
+
+            final NotificationManagerCompat notificationManagerCompat = NotificationManagerCompat.from(this);
+            notificationManagerCompat.notify(TAG, NOTIFICATION_ID, notification);
         }
-    }
-
-    /**
-     * Handle action Foo in the provided background thread with the provided
-     * parameters.
-     */
-    private void handleActionFoo(String param1, String param2) {
-        // TODO: Handle action Foo
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    /**
-     * Handle action Baz in the provided background thread with the provided
-     * parameters.
-     */
-    private void handleActionBaz(String param1, String param2) {
-        // TODO: Handle action Baz
-        throw new UnsupportedOperationException("Not yet implemented");
     }
 }

@@ -19,10 +19,13 @@ public class MainActivity extends AppCompatActivity {
                 .setTargetService(BeaconHandler.class)
                 .build());
 
+        //"DDDD98FF-2900-441A-802F-9C398FC1DDDD"
         final Beacon beacon = Beacon.newBuilder()
                 .setUUID("DDDD98FF-2900-441A-802F-9C398FC1DDDD")
-                .setMajor(1)
-                .setMinor(2)
+                .setMajor(400)
+                .setMinor(900)
                 .build();
+
+        IBeaconScanner.getInstance().startMonitoring(beacon);
     }
 }
